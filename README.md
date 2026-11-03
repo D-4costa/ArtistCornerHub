@@ -64,9 +64,3 @@ This repository contains the source code, documentation, and other resources rel
 > "I am not afraid of storms, for I am learning how to sail my ship."
 >
 > — Louisa May Alcott, *Little Women*
-
-### Gideon Komla Agbavor
-
-> "It always seems impossible until it's done."
->
-> — Nelson Mandela
