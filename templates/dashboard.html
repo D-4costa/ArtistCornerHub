@@ -1,0 +1,39 @@
+
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Artist Corner Hub{% endblock %}
+
+{% block content %}
+
+<section class="dashboard">
+    <h1>Welcome, {{ username }}!</h1>
+
+    <p>
+        This is your personal dashboard.
+        You can manage your artist profile and portfolio from here.
+    </p>
+
+    <div class="dashboard-grid">
+
+        <article class="dashboard-card">
+            <h2>Artist Profile</h2>
+            <p>Set up your profile and tell others about yourself.</p>
+            <span class="coming-soon">Coming soon</span>
+        </article>
+
+        <article class="dashboard-card">
+            <h2>My Portfolio</h2>
+            <p>Upload and organize your artwork in one place.</p>
+            <span class="coming-soon">Coming soon</span>
+        </article>
+
+        <article class="dashboard-card">
+            <h2>Commission Requests</h2>
+            <p>Keep track of inquiries from potential clients.</p>
+            <span class="coming-soon">Coming soon</span>
+        </article>
+
+    </div>
+</section>
+
+{% endblock %}

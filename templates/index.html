@@ -1,0 +1,54 @@
+
+{% extends "base.html" %}
+
+{% block title %}Home | Artist Corner Hub{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+    <h1>Welcome to Artist Corner Hub</h1>
+
+    <p>
+        A place where digital artists can showcase their work,
+        share their creativity, and connect with potential clients.
+    </p>
+
+    <div class="hero-buttons">
+        {% if session.get('user_id') %}
+            <a href="{{ url_for('dashboard') }}" class="button">
+                Go to Dashboard
+            </a>
+        {% else %}
+            <a href="{{ url_for('register') }}" class="button">
+                Join the Community
+            </a>
+
+            <a href="{{ url_for('login') }}" class="button secondary">
+                Log in
+            </a>
+        {% endif %}
+    </div>
+</section>
+
+<section class="features">
+    <h2>What can you do here?</h2>
+
+    <div class="feature-list">
+        <article class="feature-card">
+            <h3>Showcase Your Art</h3>
+            <p>Create a portfolio and share your artwork with others.</p>
+        </article>
+
+        <article class="feature-card">
+            <h3>Connect with Artists</h3>
+            <p>Discover creative people and explore their portfolios.</p>
+        </article>
+
+        <article class="feature-card">
+            <h3>Find Commissions</h3>
+            <p>Give clients a way to contact you about your work.</p>
+        </article>
+    </div>
+</section>
+
+{% endblock %}

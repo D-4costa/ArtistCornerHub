@@ -1,0 +1,58 @@
+
+{% extends "base.html" %}
+
+{% block title %}Sign Up | Artist Corner Hub{% endblock %}
+
+{% block content %}
+
+<section class="form-container">
+    <h1>Create an Account</h1>
+    <p>Join Artist Corner Hub and start sharing your artwork.</p>
+
+    <form method="POST" action="{{ url_for('register') }}">
+
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input
+                type="text"
+                id="username"
+                name="username"
+                placeholder="Enter your username"
+                required
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="Enter your email"
+                required
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input
+                type="password"
+                id="password"
+                name="password"
+                placeholder="At least 8 characters"
+                minlength="8"
+                required
+            >
+        </div>
+
+        <button type="submit" class="button">Create Account</button>
+
+    </form>
+
+    <p class="form-footer">
+        Already have an account?
+        <a href="{{ url_for('login') }}">Log in</a>
+    </p>
+</section>
+
+{% endblock %}
