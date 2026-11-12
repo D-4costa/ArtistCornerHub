@@ -1,5 +1,8 @@
 
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+import sqlite3
+from flask import (
+    Flask, jsonify, render_template, request, redirect, url_for, flash, session
+)
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 
@@ -109,6 +112,125 @@ def dashboard():
         "dashboard.html",
         username=session["username"]
     )
+
+
+# View the logged-in user's artist profile
+@app.route("/profile")
+@login_required
+def artist_profile():
+    connection = get_db_connection()
+
+    try:
+        profile = connection.execute(
+            "SELECT * FROM artist_profiles WHERE user_id = ?",
+            (session["user_id"],)
+        ).fetchone()
+    finally:
+        connection.close()
+
+    if profile is None:
+        return jsonify({"error": "Artist profile not found."}), 404
+
+    return jsonify({"profile": dict(profile)})
+
+
+# Create the logged-in user's artist profile
+@app.route("/profile/create", methods=["POST"])
+@login_required
+def create_artist_profile():
+    fields = ("full_name", "biography", "skills", "interests", "profile_image")
+    submitted = request.get_json() if request.is_json else request.form
+    if request.is_json and not isinstance(submitted, dict):
+        return jsonify({"error": "The request body must be a JSON object."}), 400
+
+    values = {}
+
+    for field in fields:
+        value = submitted.get(field, "")
+        if not isinstance(value, str):
+            return jsonify({"error": f"{field} must be a string."}), 400
+        values[field] = value.strip()
+
+    connection = get_db_connection()
+
+    try:
+        connection.execute(
+            """
+            INSERT INTO artist_profiles (
+                user_id, full_name, biography, skills, interests, profile_image
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                values["full_name"],
+                values["biography"],
+                values["skills"],
+                values["interests"],
+                values["profile_image"]
+            )
+        )
+        connection.commit()
+        profile = connection.execute(
+            "SELECT * FROM artist_profiles WHERE user_id = ?",
+            (session["user_id"],)
+        ).fetchone()
+    except sqlite3.IntegrityError:
+        connection.rollback()
+        return jsonify({"error": "An artist profile already exists."}), 409
+    finally:
+        connection.close()
+
+    return jsonify({"profile": dict(profile)}), 201
+
+
+# Update the logged-in user's artist profile
+@app.route("/profile/edit", methods=["POST", "PUT", "PATCH"])
+@login_required
+def edit_artist_profile():
+    fields = ("full_name", "biography", "skills", "interests", "profile_image")
+    submitted = request.get_json() if request.is_json else request.form
+    if request.is_json and not isinstance(submitted, dict):
+        return jsonify({"error": "The request body must be a JSON object."}), 400
+
+    values = {}
+
+    for field in fields:
+        if field in submitted:
+            value = submitted[field]
+            if not isinstance(value, str):
+                return jsonify({"error": f"{field} must be a string."}), 400
+            values[field] = value.strip()
+
+    if not values:
+        return jsonify({"error": "Provide at least one profile field to update."}), 400
+
+    assignments = ", ".join(f"{field} = ?" for field in values)
+    connection = get_db_connection()
+
+    try:
+        cursor = connection.execute(
+            f"""
+            UPDATE artist_profiles
+            SET {assignments}, updated_at = CURRENT_TIMESTAMP
+            WHERE user_id = ?
+            """,
+            (*values.values(), session["user_id"])
+        )
+
+        if cursor.rowcount == 0:
+            connection.rollback()
+            return jsonify({"error": "Artist profile not found."}), 404
+
+        connection.commit()
+        profile = connection.execute(
+            "SELECT * FROM artist_profiles WHERE user_id = ?",
+            (session["user_id"],)
+        ).fetchone()
+    finally:
+        connection.close()
+
+    return jsonify({"profile": dict(profile)})
 
 
 # User logout
