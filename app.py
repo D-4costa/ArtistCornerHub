@@ -1,7 +1,8 @@
 
 import sqlite3
 from flask import (
-    Flask, jsonify, render_template, request, redirect, url_for, flash, session
+    Flask, jsonify, render_template, request,
+    redirect, url_for, flash, session
 )
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -66,7 +67,7 @@ def register():
             flash("Your account has been created. You can now log in.", "success")
             return redirect(url_for("login"))
 
-        except Exception:
+        except sqlite3.IntegrityError:
             flash("That email is already registered.", "error")
             return redirect(url_for("register"))
 
@@ -85,12 +86,13 @@ def login():
 
         connection = get_db_connection()
 
-        user = connection.execute(
-            "SELECT * FROM users WHERE email = ?",
-            (email,)
-        ).fetchone()
-
-        connection.close()
+        try:
+            user = connection.execute(
+                "SELECT * FROM users WHERE email = ?",
+                (email,)
+            ).fetchone()
+        finally:
+            connection.close()
 
         if user and check_password_hash(user["password_hash"], password):
             session.clear()
@@ -113,7 +115,8 @@ def dashboard():
         username=session["username"]
     )
 
-# Artist profile page
+
+# View the artist profile page
 @app.route("/profile/view")
 @login_required
 def artist_profile_page():
@@ -131,13 +134,10 @@ def artist_profile_page():
         flash("You haven't created an artist profile yet.", "error")
         return redirect(url_for("create_profile_page"))
 
-    return render_template(
-        "artist_profile.html",
-        profile=profile
-    )
+    return render_template("artist_profile.html", profile=profile)
 
 
-# Create artist profile page
+# Show the create profile form
 @app.route("/profile/new")
 @login_required
 def create_profile_page():
@@ -157,7 +157,8 @@ def create_profile_page():
 
     return render_template("create_profile.html")
 
-# Edit artist profile page
+
+# Show the edit profile form
 @app.route("/profile/edit-page")
 @login_required
 def edit_profile_page():
@@ -175,12 +176,10 @@ def edit_profile_page():
         flash("Create your artist profile first.", "error")
         return redirect(url_for("create_profile_page"))
 
-    return render_template(
-        "edit_profile.html",
-        profile=profile
-    )
+    return render_template("edit_profile.html", profile=profile)
 
-# View the logged-in user's artist profile
+
+# View the logged-in user's artist profile (JSON API)
 @app.route("/profile")
 @login_required
 def artist_profile():
@@ -204,17 +203,36 @@ def artist_profile():
 @app.route("/profile/create", methods=["POST"])
 @login_required
 def create_artist_profile():
-    fields = ("full_name", "biography", "skills", "interests", "profile_image")
-    submitted = request.get_json() if request.is_json else request.form
-    if request.is_json and not isinstance(submitted, dict):
-        return jsonify({"error": "The request body must be a JSON object."}), 400
+    fields = (
+        "full_name",
+        "biography",
+        "skills",
+        "interests",
+        "profile_image"
+    )
+
+    is_json_request = request.is_json
+    submitted = request.get_json() if is_json_request else request.form
+
+    if is_json_request and not isinstance(submitted, dict):
+        return jsonify({
+            "error": "The request body must be a JSON object."
+        }), 400
 
     values = {}
 
     for field in fields:
         value = submitted.get(field, "")
+
         if not isinstance(value, str):
-            return jsonify({"error": f"{field} must be a string."}), 400
+            if is_json_request:
+                return jsonify({
+                    "error": f"{field} must be a string."
+                }), 400
+
+            flash("Please enter valid information.", "error")
+            return redirect(url_for("create_profile_page"))
+
         values[field] = value.strip()
 
     connection = get_db_connection()
@@ -223,7 +241,8 @@ def create_artist_profile():
         connection.execute(
             """
             INSERT INTO artist_profiles (
-                user_id, full_name, biography, skills, interests, profile_image
+                user_id, full_name, biography, skills,
+                interests, profile_image
             )
             VALUES (?, ?, ?, ?, ?, ?)
             """,
@@ -236,42 +255,85 @@ def create_artist_profile():
                 values["profile_image"]
             )
         )
+
         connection.commit()
+
         profile = connection.execute(
             "SELECT * FROM artist_profiles WHERE user_id = ?",
             (session["user_id"],)
         ).fetchone()
+
     except sqlite3.IntegrityError:
         connection.rollback()
-        return jsonify({"error": "An artist profile already exists."}), 409
+
+        if is_json_request:
+            return jsonify({
+                "error": "An artist profile already exists."
+            }), 409
+
+        flash("You already have an artist profile.", "error")
+        return redirect(url_for("artist_profile_page"))
+
     finally:
         connection.close()
 
-    return jsonify({"profile": dict(profile)}), 201
+    if is_json_request:
+        return jsonify({"profile": dict(profile)}), 201
+
+    flash("Your artist profile has been created successfully.", "success")
+    return redirect(url_for("artist_profile_page"))
 
 
 # Update the logged-in user's artist profile
 @app.route("/profile/edit", methods=["POST", "PUT", "PATCH"])
 @login_required
 def edit_artist_profile():
-    fields = ("full_name", "biography", "skills", "interests", "profile_image")
-    submitted = request.get_json() if request.is_json else request.form
-    if request.is_json and not isinstance(submitted, dict):
-        return jsonify({"error": "The request body must be a JSON object."}), 400
+    fields = (
+        "full_name",
+        "biography",
+        "skills",
+        "interests",
+        "profile_image"
+    )
+
+    is_json_request = request.is_json
+    submitted = request.get_json() if is_json_request else request.form
+
+    if is_json_request and not isinstance(submitted, dict):
+        return jsonify({
+            "error": "The request body must be a JSON object."
+        }), 400
 
     values = {}
 
     for field in fields:
         if field in submitted:
             value = submitted[field]
+
             if not isinstance(value, str):
-                return jsonify({"error": f"{field} must be a string."}), 400
+                if is_json_request:
+                    return jsonify({
+                        "error": f"{field} must be a string."
+                    }), 400
+
+                flash("Please enter valid information.", "error")
+                return redirect(url_for("edit_profile_page"))
+
             values[field] = value.strip()
 
     if not values:
-        return jsonify({"error": "Provide at least one profile field to update."}), 400
+        if is_json_request:
+            return jsonify({
+                "error": "Provide at least one profile field to update."
+            }), 400
 
-    assignments = ", ".join(f"{field} = ?" for field in values)
+        flash("Please provide information to update.", "error")
+        return redirect(url_for("edit_profile_page"))
+
+    assignments = ", ".join(
+        f"{field} = ?" for field in values
+    )
+
     connection = get_db_connection()
 
     try:
@@ -286,17 +348,30 @@ def edit_artist_profile():
 
         if cursor.rowcount == 0:
             connection.rollback()
-            return jsonify({"error": "Artist profile not found."}), 404
+
+            if is_json_request:
+                return jsonify({
+                    "error": "Artist profile not found."
+                }), 404
+
+            flash("Your artist profile could not be found.", "error")
+            return redirect(url_for("create_profile_page"))
 
         connection.commit()
+
         profile = connection.execute(
             "SELECT * FROM artist_profiles WHERE user_id = ?",
             (session["user_id"],)
         ).fetchone()
+
     finally:
         connection.close()
 
-    return jsonify({"profile": dict(profile)})
+    if is_json_request:
+        return jsonify({"profile": dict(profile)})
+
+    flash("Your artist profile has been updated successfully.", "success")
+    return redirect(url_for("artist_profile_page"))
 
 
 # User logout
@@ -312,3 +387,4 @@ if __name__ == "__main__":
         init_db()
 
     app.run(debug=True)
+
