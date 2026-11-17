@@ -21,16 +21,16 @@
             <h2>Artist Profile</h2>
 
             <p>
-                Create your artist profile, introduce yourself,
-                and share your skills and interests with others.
+                Create and manage your artist profile.
+                Share your biography, skills, and interests with the community.
             </p>
 
             <div class="dashboard-actions">
-                <a href="{{ url_for('view_profile') }}" class="button">
+                <a href="{{ url_for('artist_profile_page') }}" class="button">
                     View Profile
                 </a>
 
-                <a href="{{ url_for('create_profile') }}" class="button secondary">
+                <a href="{{ url_for('create_profile_page') }}" class="button secondary">
                     Create Profile
                 </a>
             </div>
@@ -65,3 +65,4 @@
 </section>
 
 {% endblock %}
+
