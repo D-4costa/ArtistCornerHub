@@ -113,6 +113,72 @@ def dashboard():
         username=session["username"]
     )
 
+# Artist profile page
+@app.route("/profile/view")
+@login_required
+def artist_profile_page():
+    connection = get_db_connection()
+
+    try:
+        profile = connection.execute(
+            "SELECT * FROM artist_profiles WHERE user_id = ?",
+            (session["user_id"],)
+        ).fetchone()
+    finally:
+        connection.close()
+
+    if profile is None:
+        flash("You haven't created an artist profile yet.", "error")
+        return redirect(url_for("create_profile_page"))
+
+    return render_template(
+        "artist_profile.html",
+        profile=profile
+    )
+
+
+# Create artist profile page
+@app.route("/profile/new")
+@login_required
+def create_profile_page():
+    connection = get_db_connection()
+
+    try:
+        profile = connection.execute(
+            "SELECT id FROM artist_profiles WHERE user_id = ?",
+            (session["user_id"],)
+        ).fetchone()
+    finally:
+        connection.close()
+
+    if profile:
+        flash("You already have an artist profile.", "error")
+        return redirect(url_for("artist_profile_page"))
+
+    return render_template("create_profile.html")
+
+# Edit artist profile page
+@app.route("/profile/edit-page")
+@login_required
+def edit_profile_page():
+    connection = get_db_connection()
+
+    try:
+        profile = connection.execute(
+            "SELECT * FROM artist_profiles WHERE user_id = ?",
+            (session["user_id"],)
+        ).fetchone()
+    finally:
+        connection.close()
+
+    if profile is None:
+        flash("Create your artist profile first.", "error")
+        return redirect(url_for("create_profile_page"))
+
+    return render_template(
+        "edit_profile.html",
+        profile=profile
+    )
 
 # View the logged-in user's artist profile
 @app.route("/profile")
