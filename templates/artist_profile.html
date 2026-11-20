@@ -1,0 +1,45 @@
+
+{% extends "base.html" %}
+
+{% block title %}Artist Profile - Artist Corner Hub{% endblock %}
+
+{% block content %}
+<section class="profile-container">
+
+    <div class="profile-header">
+        <div class="profile-image">
+            {% if profile.profile_image %}
+                <img src="{{ profile.profile_image }}" alt="Artist profile picture">
+            {% else %}
+                <div class="profile-placeholder">AC</div>
+            {% endif %}
+        </div>
+
+        <div class="profile-info">
+            <h1>{{ profile.full_name or "Artist" }}</h1>
+
+            {% if profile.skills %}
+                <p class="profile-skills">{{ profile.skills }}</p>
+            {% endif %}
+
+            <p class="profile-bio">
+                {{ profile.biography or "This artist has not added a biography yet." }}
+            </p>
+
+            <a href="{{ url_for('edit_profile_page') }}" class="btn-primary">
+                Edit Profile
+            </a>
+        </div>
+    </div>
+
+    <div class="profile-section">
+        <h2>About the Artist</h2>
+        <p>{{ profile.interests or "No interests have been added yet." }}</p>
+    </div>
+
+    <a href="{{ url_for('dashboard') }}" class="back-link">
+        Back to Dashboard
+    </a>
+
+</section>
+{% endblock %}

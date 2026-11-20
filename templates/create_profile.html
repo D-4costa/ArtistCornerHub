@@ -1,0 +1,78 @@
+
+{% extends "base.html" %}
+
+{% block title %}Create Artist Profile - Artist Corner Hub{% endblock %}
+
+{% block content %}
+<section class="form-container">
+
+    <h1>Create Your Artist Profile</h1>
+    <p class="form-description">
+        Introduce yourself and let others discover your work.
+    </p>
+
+    <form method="POST" action="{{ url_for('create_artist_profile') }}">
+
+        <div class="form-group">
+            <label for="full_name">Artist Name</label>
+            <input
+                type="text"
+                id="full_name"
+                name="full_name"
+                placeholder="Your artist name"
+                required
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="biography">Biography</label>
+            <textarea
+                id="biography"
+                name="biography"
+                rows="4"
+                placeholder="Tell us about yourself and your art..."
+            ></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="skills">Skills</label>
+            <input
+                type="text"
+                id="skills"
+                name="skills"
+                placeholder="Digital illustration, animation, character design..."
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="interests">Interests</label>
+            <textarea
+                id="interests"
+                name="interests"
+                rows="3"
+                placeholder="What inspires you?"
+            ></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="profile_image">Profile Image URL</label>
+            <input
+                type="url"
+                id="profile_image"
+                name="profile_image"
+                placeholder="https://example.com/image.png"
+            >
+        </div>
+
+        <button type="submit" class="btn-primary">
+            Create Profile
+        </button>
+
+    </form>
+
+    <a href="{{ url_for('dashboard') }}" class="back-link">
+        Cancel
+    </a>
+
+</section>
+{% endblock %}

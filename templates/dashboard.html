@@ -6,34 +6,62 @@
 {% block content %}
 
 <section class="dashboard">
+
     <h1>Welcome, {{ username }}!</h1>
 
     <p>
         This is your personal dashboard.
-        You can manage your artist profile and portfolio from here.
+        Manage your artist profile and explore the tools available on Artist Corner Hub.
     </p>
 
     <div class="dashboard-grid">
 
+        <!-- Artist Profile -->
         <article class="dashboard-card">
             <h2>Artist Profile</h2>
-            <p>Set up your profile and tell others about yourself.</p>
-            <span class="coming-soon">Coming soon</span>
+
+            <p>
+                Create and manage your artist profile.
+                Share your biography, skills, and interests with the community.
+            </p>
+
+            <div class="dashboard-actions">
+                <a href="{{ url_for('artist_profile_page') }}" class="button">
+                    View Profile
+                </a>
+
+                <a href="{{ url_for('create_profile_page') }}" class="button secondary">
+                    Create Profile
+                </a>
+            </div>
         </article>
 
+        <!-- Portfolio -->
         <article class="dashboard-card">
             <h2>My Portfolio</h2>
-            <p>Upload and organize your artwork in one place.</p>
+
+            <p>
+                Upload, organize, and showcase your artwork
+                in one place.
+            </p>
+
             <span class="coming-soon">Coming soon</span>
         </article>
 
+        <!-- Commission Requests -->
         <article class="dashboard-card">
             <h2>Commission Requests</h2>
-            <p>Keep track of inquiries from potential clients.</p>
+
+            <p>
+                Keep track of inquiries from potential clients
+                and manage your commission opportunities.
+            </p>
+
             <span class="coming-soon">Coming soon</span>
         </article>
 
     </div>
+
 </section>
 
 {% endblock %}
