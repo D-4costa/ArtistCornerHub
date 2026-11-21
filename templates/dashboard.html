@@ -39,13 +39,15 @@
         <!-- Portfolio -->
         <article class="dashboard-card">
             <h2>My Portfolio</h2>
-
-            <p>
-                Upload, organize, and showcase your artwork
-                in one place.
-            </p>
-
-            <span class="coming-soon">Coming soon</span>
+            <p>Upload, organize, and showcase your artwork in one place.</p>
+            <div class="dashboard-actions">
+            <a href="{{ url_for('portfolio_page') }}" class="button">
+            View Portfolio
+            </a>
+            <a href="{{ url_for('upload_artwork_page') }}" class="button secondary">
+            Upload Artwork
+            </a>
+            </div>
         </article>
 
         <!-- Commission Requests -->
