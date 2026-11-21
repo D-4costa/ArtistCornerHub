@@ -43,5 +43,18 @@ def init_db():
         )
     """)
 
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS artworks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id INTEGER NOT NULL REFERENCES artist_profiles(id),
+            title TEXT NOT NULL,
+            description TEXT,
+            category TEXT,
+            image_path TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     connection.commit()
     connection.close()
