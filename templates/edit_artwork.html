@@ -1,0 +1,75 @@
+
+{% extends "base.html" %}
+
+{% block title %}Edit Artwork | Artist Corner Hub{% endblock %}
+
+{% block content %}
+<section class="dashboard">
+    <h1>Edit Artwork</h1>
+    <p>Update the information for your artwork.</p>
+
+    <form
+        action="{{ url_for('edit_artwork_page', artwork_id=artwork['id']) }}"
+        method="POST"
+    >
+        <div class="form-group">
+            <label for="title">Artwork Title</label>
+            <input
+                type="text"
+                id="title"
+                name="title"
+                value="{{ artwork['title'] }}"
+                required
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea
+                id="description"
+                name="description"
+                rows="4"
+            >{{ artwork['description'] or '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category" name="category">
+                <option value="">Select a category</option>
+
+                <option value="Painting" {% if artwork['category'] == 'Painting' %}selected{% endif %}>
+                    Painting
+                </option>
+
+                <option value="Drawing" {% if artwork['category'] == 'Drawing' %}selected{% endif %}>
+                    Drawing
+                </option>
+
+                <option value="Digital Art" {% if artwork['category'] == 'Digital Art' %}selected{% endif %}>
+                    Digital Art
+                </option>
+
+                <option value="Photography" {% if artwork['category'] == 'Photography' %}selected{% endif %}>
+                    Photography
+                </option>
+
+                <option value="Sculpture" {% if artwork['category'] == 'Sculpture' %}selected{% endif %}>
+                    Sculpture
+                </option>
+
+                <option value="Other" {% if artwork['category'] == 'Other' %}selected{% endif %}>
+                    Other
+                </option>
+            </select>
+        </div>
+
+        <button type="submit" class="button">
+            Save Changes
+        </button>
+
+        <a href="{{ url_for('portfolio_page') }}" class="button secondary">
+            Cancel
+        </a>
+    </form>
+</section>
+{% endblock %}

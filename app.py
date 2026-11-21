@@ -9,8 +9,21 @@ from functools import wraps
 
 from database import init_db, get_db_connection
 
+import os
+import uuid
+from werkzeug.utils import secure_filename
+
 
 app = Flask(__name__)
+
+# Artwork upload settings
+UPLOAD_FOLDER = os.path.join(
+    app.root_path, "static", "uploads", "artwork"
+)
+
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024
 
 app.secret_key = "artist-corner-hub-dev-key"
 
@@ -26,6 +39,12 @@ def login_required(route):
         return route(*args, **kwargs)
 
     return wrapper
+
+def allowed_file(filename):
+    return (
+        "." in filename
+        and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+    )
 
 
 # Home page
@@ -373,6 +392,243 @@ def edit_artist_profile():
     flash("Your artist profile has been updated successfully.", "success")
     return redirect(url_for("artist_profile_page"))
 
+
+# Show the artwork upload form
+@app.route("/portfolio/upload")
+@login_required
+def upload_artwork_page():
+    connection = get_db_connection()
+
+    try:
+        profile = connection.execute(
+            "SELECT id FROM artist_profiles WHERE user_id = ?",
+            (session["user_id"],)
+        ).fetchone()
+    finally:
+        connection.close()
+
+    if profile is None:
+        flash("Create your artist profile before uploading artwork.", "error")
+        return redirect(url_for("create_profile_page"))
+
+    return render_template("upload_artwork.html")
+
+
+# Process artwork uploads
+@app.route("/portfolio/create", methods=["POST"])
+@login_required
+def create_artwork():
+    title = request.form.get("title", "").strip()
+    description = request.form.get("description", "").strip()
+    category = request.form.get("category", "").strip()
+    image = request.files.get("image")
+
+    if not title:
+        flash("Please enter an artwork title.", "error")
+        return redirect(url_for("upload_artwork_page"))
+
+    if not image or image.filename == "":
+        flash("Please select an image to upload.", "error")
+        return redirect(url_for("upload_artwork_page"))
+
+    if not allowed_file(image.filename):
+        flash("Please upload a PNG, JPG, JPEG, GIF, or WEBP image.", "error")
+        return redirect(url_for("upload_artwork_page"))
+
+    connection = get_db_connection()
+    saved_image_path = None
+
+    try:
+        profile = connection.execute(
+            "SELECT id FROM artist_profiles WHERE user_id = ?",
+            (session["user_id"],)
+        ).fetchone()
+
+        if profile is None:
+            flash("Create your artist profile before uploading artwork.", "error")
+            return redirect(url_for("create_profile_page"))
+
+        filename = secure_filename(image.filename)
+        extension = filename.rsplit(".", 1)[1].lower()
+        unique_filename = f"{uuid.uuid4().hex}.{extension}"
+
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+        saved_image_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+        image.save(saved_image_path)
+
+        image_path = f"uploads/artwork/{unique_filename}"
+
+        connection.execute(
+            """
+            INSERT INTO artworks (
+                profile_id, title, description,
+                category, image_path
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (profile["id"], title, description, category, image_path)
+        )
+
+        connection.commit()
+
+    except Exception:
+        connection.rollback()
+
+        try:
+            if saved_image_path and os.path.exists(saved_image_path):
+                os.remove(saved_image_path)
+        except OSError:
+            app.logger.exception(
+                "Could not remove uploaded image after database error."
+            )
+
+        raise
+
+    finally:
+        connection.close()
+
+    flash("Your artwork has been uploaded successfully.", "success")
+    return redirect(url_for("portfolio_page"))
+
+# View the logged-in user's portfolio
+
+@app.route("/portfolio")
+@login_required
+def portfolio_page():
+    category = request.args.get("category", "").strip()
+
+    connection = get_db_connection()
+    try:
+        artworks = connection.execute(
+            """
+            SELECT artworks.*
+            FROM artworks
+            JOIN artist_profiles
+                ON artworks.profile_id = artist_profiles.id
+            WHERE artist_profiles.user_id = ?
+                AND (? = '' OR artworks.category = ?)
+            ORDER BY artworks.created_at DESC
+            """,
+            (session["user_id"], category, category)
+        ).fetchall()
+    finally:
+        connection.close()
+
+    return render_template(
+        "portfolio.html",
+        artworks=artworks,
+        selected_category=category
+    )
+
+
+# Edit an artwork
+@app.route("/portfolio/edit/<int:artwork_id>", methods=["GET", "POST"])
+@login_required
+def edit_artwork_page(artwork_id):
+    connection = get_db_connection()
+
+    try:
+        artwork = connection.execute(
+            """
+            SELECT artworks.*
+            FROM artworks
+            JOIN artist_profiles
+                ON artworks.profile_id = artist_profiles.id
+            WHERE artworks.id = ?
+                AND artist_profiles.user_id = ?
+            """,
+            (artwork_id, session["user_id"])
+        ).fetchone()
+
+        if artwork is None:
+            flash("Artwork not found.", "error")
+            return redirect(url_for("portfolio_page"))
+
+        if request.method == "POST":
+            title = request.form.get("title", "").strip()
+            description = request.form.get("description", "").strip()
+            category = request.form.get("category", "").strip()
+
+            if not title:
+                flash("Artwork title is required.", "error")
+                return redirect(
+                    url_for("edit_artwork_page", artwork_id=artwork_id)
+                )
+
+            connection.execute(
+                """
+                UPDATE artworks
+                SET title = ?,
+                    description = ?,
+                    category = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (title, description, category, artwork_id)
+            )
+
+            connection.commit()
+
+            flash("Artwork updated successfully.", "success")
+            return redirect(url_for("portfolio_page"))
+
+    finally:
+        connection.close()
+
+    return render_template("edit_artwork.html", artwork=artwork)
+
+# Delete artwork
+@app.route("/portfolio/delete/<int:artwork_id>", methods=["POST"])
+@login_required
+def delete_artwork(artwork_id):
+    connection = get_db_connection()
+
+    try:
+        artwork = connection.execute(
+            """
+            SELECT artworks.*
+            FROM artworks
+            JOIN artist_profiles
+                ON artworks.profile_id = artist_profiles.id
+            WHERE artworks.id = ?
+                AND artist_profiles.user_id = ?
+            """,
+            (artwork_id, session["user_id"])
+        ).fetchone()
+
+        if artwork is None:
+            flash("Artwork not found.", "error")
+            return redirect(url_for("portfolio_page"))
+
+        connection.execute(
+            "DELETE FROM artworks WHERE id = ?",
+            (artwork_id,)
+        )
+        connection.commit()
+
+        image_file = os.path.join(
+            app.root_path, "static", artwork["image_path"]
+        )
+
+        try:
+            if os.path.exists(image_file):
+                os.remove(image_file)
+        except OSError:
+            app.logger.exception(
+                "Could not delete artwork image file: %s", image_file
+            )
+            flash(
+                "Artwork was deleted, but its image file could not be removed.",
+                "warning"
+            )
+            return redirect(url_for("portfolio_page"))
+
+    finally:
+        connection.close()
+
+    flash("Artwork deleted successfully.", "success")
+    return redirect(url_for("portfolio_page"))
 
 # User logout
 @app.route("/logout")

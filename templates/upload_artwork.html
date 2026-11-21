@@ -1,0 +1,69 @@
+
+{% extends "base.html" %}
+
+{% block title %}Upload Artwork | Artist Corner Hub{% endblock %}
+
+{% block content %}
+<section class="dashboard">
+    <h1>Upload Artwork</h1>
+    <p>Add a new piece to your portfolio.</p>
+
+    <form
+        action="{{ url_for('create_artwork') }}"
+        method="POST"
+        enctype="multipart/form-data"
+    >
+        <div class="form-group">
+            <label for="title">Artwork Title</label>
+            <input
+                type="text"
+                id="title"
+                name="title"
+                required
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea
+                id="description"
+                name="description"
+                rows="4"
+            ></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="category">Category</label>
+            <select id="category" name="category">
+                <option value="">Select a category</option>
+                <option value="Painting">Painting</option>
+                <option value="Drawing">Drawing</option>
+                <option value="Digital Art">Digital Art</option>
+                <option value="Photography">Photography</option>
+                <option value="Sculpture">Sculpture</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="image">Artwork Image</label>
+            <input
+                type="file"
+                id="image"
+                name="image"
+                accept=".png,.jpg,.jpeg,.gif,.webp"
+                required
+            >
+            <small>Accepted formats: PNG, JPG, JPEG, GIF, WEBP. Maximum size: 5 MB.</small>
+        </div>
+
+        <button type="submit" class="button">
+            Upload Artwork
+        </button>
+
+        <a href="{{ url_for('portfolio_page') }}" class="button secondary">
+            Cancel
+        </a>
+    </form>
+</section>
+{% endblock %}
